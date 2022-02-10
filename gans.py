@@ -15,9 +15,11 @@ from PIL import Image
 import numpy as np
 import cv2
 
+PATHD = "./models/netD.pth"
+PATHG = "./models/netG.pth"
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
-
 
 batchSize = 64
 imageSize = 64
@@ -48,9 +50,7 @@ class CustomDataset(Dataset):
             
         return sample
         
-          
-
-    
+              
 dataset = CustomDataset(root_dir = 'images', transform = transform)
 dataloader = torch.utils.data.DataLoader(dataset, batch_size = batchSize, shuffle = True) 
        
@@ -150,3 +150,16 @@ for epoch in range(5000):
         print("---------------------------")
         print("Epoch: "+str(epoch)+" err_G: "+str(errG.view(-1))+" err_D: "+str(errD.view(-1)))
         vutils.save_image(fake.data, '%s/fake_samples_epoch_%03d.png' % ("./results", epoch), normalize = True)
+
+    #Print netD's state_dict
+    print("Model's state_dict:")
+    for param_tensor in netD.state_dict():
+        print(param_tensor, "\t", netD.state_dict()[param_tensor].size())
+    
+    #print netG's state_dict
+    print("Model's state_dict:")
+    for param_tensor in netG.state_dict():
+        print(param_tensor, "\t", netG.state_dict()[param_tensor].size())
+
+    torch.save(netD, PATHD)
+    torch.save(netG, PATHG)
