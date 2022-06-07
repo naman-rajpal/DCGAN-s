@@ -15,6 +15,7 @@ from PIL import Image
 import numpy as np
 import cv2
 
+
 PATHD = "./models/netD.pth"
 PATHG = "./models/netG.pth"
 
@@ -24,16 +25,17 @@ print(device)
 batchSize = 64
 imageSize = 64
 
-transform = transforms.Compose([transforms.CenterCrop([32,32]),transforms.Scale(imageSize), transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),])
+transform = transforms.Compose([transforms.Resize([64,64]), transforms.ToTensor()])
 
 class CustomDataset(Dataset):
-    def __init__(self, root_dir, transform =None):
+    def __init__(self, root_dir, transform = None, targrt_tramsform = None):
         self.root_dir = root_dir
         self.transform = transform
     
     def __len__ (self):
         path, dirs, files = next(os.walk(self.root_dir))
         file_count = len(files)
+        #print('file_count : ',file_count)
         return(file_count-1)
     
     def __getitem__(self,idx):
@@ -45,7 +47,7 @@ class CustomDataset(Dataset):
         
         sample = image
         if self.transform:
-            sample = Image.fromarray(image.astype('uint8'), 'RGB')
+            sample = Image.fromarray(image.astype('uint8'), mode = 'L')
             sample =self.transform(sample)
             
         return sample
@@ -79,7 +81,7 @@ class G(nn.Module):
             nn.ConvTranspose2d(128, 64, 4, 2, 1, bias = False),
             nn.BatchNorm2d(64),
             nn.ReLU(True),
-            nn.ConvTranspose2d(64, 3, 4, 2, 1, bias = False),
+            nn.ConvTranspose2d(64, 1, 4, 2, 1, bias = False),
             nn.Tanh()
         )
     
@@ -90,11 +92,13 @@ class G(nn.Module):
 netG = G()
 netG.apply(weights_init)
 
+print(netG)
+
 class D(nn.Module):
     def __init__(self):
         super(D,self).__init__()
         self.main = nn.Sequential(
-            nn.Conv2d(3 ,64 ,4 ,2 ,1 ,bias = False),
+            nn.Conv2d(1 ,64 ,4 ,2 ,1 ,bias = False),
             nn.LeakyReLU(0.2, inplace = True),
             nn.Conv2d(64, 128, 4, 2, 1, bias = False),
             nn.BatchNorm2d(128),
@@ -115,6 +119,8 @@ class D(nn.Module):
     
 netD = D()
 netD.apply(weights_init)
+
+print(netD)
 
 criterion = nn.BCELoss()
 optimizerD = optim.Adam(netD.parameters(),lr=0.0002,betas = (0.5, 0.999))
